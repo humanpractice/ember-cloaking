@@ -31,6 +31,15 @@
         preservesContext: this.get('preservesContext') === 'true',
         cloaksController: this.get('itemController'),
         defaultHeight: this.get('defaultHeight'),
+        cachesHeight: !!this.get('cachesHeightObserving'),
+
+        adjustCachedHeight: this.get('cachesHeightObserving') ? Ember.observer(this.get('cachesHeightObserving'), function() {
+          Ember.run.scheduleOnce('afterRender', function() {
+            if (this.get('cachesHeight') && this.get('childViews.length') > 0) {
+              this.get('content').cachedHeight = this.$().height();
+            }
+          }.bind(this));
+        }) : null,
 
         init: function() {
           this._super();
@@ -49,7 +58,6 @@
       this._super();
       Ember.run.next(this, 'scrolled');
     },
-
 
     /**
       If the topmost visible view changed, we will notify the controller if it has an appropriate hook.
@@ -384,10 +392,12 @@
           createArgs.context = target;
         }
         if (controller) { createArgs.controller = controller; }
-        this.setProperties({
-          style: null,
-          loading: false
-        });
+
+        this.set('loading', false);
+        // Setting style to null after rerendering ensures there is no momentary
+        // 'flicker' in upward vertical scrolling, due to a higher cloaked view
+        // uncloaking and being momentarily the wrong height
+        Ember.run.scheduleOnce('afterRender', function () { this.set('style', null); }.bind(this));
 
         this.setContainedView(this.createChildView(this.get('cloaks'), createArgs));
       }
@@ -423,6 +433,9 @@
           var defaultHeight = 100;
           if(this.get('defaultHeight')) {
             defaultHeight = this.get('defaultHeight');
+          }
+          if (this.get('cachesHeight') && this.get('content').cachedHeight) {
+            defaultHeight = this.get('content').cachedHeight;
           }
 
           this.$().css('height', defaultHeight);
