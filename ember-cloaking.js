@@ -31,6 +31,7 @@
         preservesContext: this.get('preservesContext') === 'true',
         cloaksController: this.get('itemController'),
         defaultHeight: this.get('defaultHeight'),
+        defaultHeightProperty: this.get('defaultHeightProperty'),
 
         init: function() {
           this._super();
@@ -303,6 +304,41 @@
       this._childViews = [];
     },
 
+    target: function () {
+      return this.get('contentController') || this.get('content');
+    }.property('contentController', 'content').readOnly(),
+
+    contentController: function () {
+      var model = this.get('content'),
+          controller = null,
+          container = this.get('container');
+
+      // Wire up the itemController if necessary
+      var controllerName = this.get('cloaksController');
+      if (controllerName) {
+        var controllerFullName = 'controller:' + controllerName,
+            factory = container.lookupFactory(controllerFullName),
+            parentController = this.get('controller');
+
+        // let ember generate controller if needed
+        if (factory === undefined) {
+          factory = Ember.generateControllerFactory(container, controllerName, model);
+
+          // inform developer about typo
+          Ember.Logger.warn('ember-cloaking: can\'t lookup controller by name "' + controllerFullName + '".');
+          Ember.Logger.warn('ember-cloaking: using ' + factory.toString() + '.');
+        }
+
+        return factory.create({
+          model: model,
+          parentController: parentController,
+          target: parentController
+        });
+      } else {
+        return null;
+      }
+    }.property('content', 'cloaksController', 'controller').readOnly(),
+
     setContainedView: function(cv) {
       if (this._childViews[0]) {
         this._childViews[0].destroy();
@@ -348,35 +384,9 @@
       if (state !== 'inDOM' && state !== 'preRender') { return; }
 
       if (!this._containedView) {
-        var model = this.get('content'),
-            controller = null,
-            container = this.get('container');
-
-        // Wire up the itemController if necessary
-        var controllerName = this.get('cloaksController');
-        if (controllerName) {
-          var controllerFullName = 'controller:' + controllerName,
-              factory = container.lookupFactory(controllerFullName),
-              parentController = this.get('controller');
-
-          // let ember generate controller if needed
-          if (factory === undefined) {
-            factory = Ember.generateControllerFactory(container, controllerName, model);
-
-            // inform developer about typo
-            Ember.Logger.warn('ember-cloaking: can\'t lookup controller by name "' + controllerFullName + '".');
-            Ember.Logger.warn('ember-cloaking: using ' + factory.toString() + '.');
-          }
-
-          controller = factory.create({
-            model: model,
-            parentController: parentController,
-            target: parentController
-          });
-        }
-
         var createArgs = {},
-            target = controller || model;
+            target = this.get('target'),
+            controller = this.get('contentController');
 
         if (this.get('preservesContext')) {
           createArgs.content = target;
@@ -421,7 +431,9 @@
         // but do not touch if height already defined
         if(!this.$().height()){
           var defaultHeight = 100;
-          if(this.get('defaultHeight')) {
+          if (this.get('defaultHeightProperty')) {
+            defaultHeight = this.get('target').get(this.get('defaultHeightProperty'));
+          } else if (this.get('defaultHeight')) {
             defaultHeight = this.get('defaultHeight');
           }
 
