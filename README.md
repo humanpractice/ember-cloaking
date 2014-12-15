@@ -40,6 +40,14 @@ Default: `100`
 Height of the cloaked views by default. You should pick a value that is in the ballpark of
 your average view height.
 
+####defaultHeightProperty
+Default: `null`
+
+The name of a property on each content collection element which will be used as
+the default height of the corresponding cloaked view. The property may be
+defined by the content elements themselves or in the `itemController`.
+
+If `defaultHeightProperty` is specified, `defaultHeight` will not be used.
 
 ####loadingHTML
 Default: `"Loading..."`
