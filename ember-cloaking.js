@@ -74,6 +74,16 @@
     }.observes('bottomVisible'),
 
     /**
+      Recomputes what should be visible when the content collection changes.
+
+      @method _updateVisibleOnContentChange
+      @observes content.[]
+    **/
+    _updateVisibleOnContentChange: function() {
+      this.scrollTriggered();
+    }.observes('content.[]'),
+
+    /**
       Binary search for finding the topmost view on screen.
 
       @method findTopView
