@@ -16,6 +16,7 @@ export default Ember.CollectionView.extend({
   offsetFixedTopElement: null,
   offsetFixedBottomElement: null,
   loadingHTML: 'Loading...',
+  useLoadingHTML: true,
   scrollDebounce: 10,
 
   init: function() {
@@ -28,6 +29,10 @@ export default Ember.CollectionView.extend({
 
     if (!itemTagName) {
       itemTagName = (collectionTagName === 'tbody' || collectionTagName === 'table') ? 'tr' : 'div';
+    }
+
+    if (Ember.typeOf(this.get('useLoadingHTML')) === 'string') {
+      this.set('useLoadingHTML', this.get('useLoadingHTML') === 'true');
     }
 
     // Set the slack ratio differently to allow for more or less slack in preloading
@@ -204,16 +209,17 @@ export default Ember.CollectionView.extend({
       self._nextUncloak = Ember.run.later(self, self.uncloakQueue,50);
     });
 
-    for (var j=bottomView; j<childViews.length; j++) {
-      var checkView = childViews[j];
-      if (!checkView._containedView) {
-        if (!checkView.get('loading')) {
-          checkView.$().html(this.get('loadingHTML'));
+    if (this.get('useLoadingHTML')) {
+      for (var j=bottomView; j<childViews.length; j++) {
+        var checkView = childViews[j];
+        if (!checkView._containedView) {
+          if (!checkView.get('loading')) {
+            checkView.$().html(this.get('loadingHTML'));
+          }
+          return;
         }
-        return;
       }
     }
-
   },
 
   uncloakQueue: function(){
